@@ -1,0 +1,16 @@
+{
+  "name": "ESPressio-Lua",
+  "version": "1.0.0",
+  "description": "Lua 5.5.1 scripting instances and reusable native C++ type bindings for ESPressio",
+  "keywords": ["lua", "scripting", "binding", "espressio"],
+  "authors": {"name": "Simon Stuart", "maintainer": true},
+  "license": "Apache-2.0",
+  "repository": {"type": "git", "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Lua.git"},
+  "frameworks": "*",
+  "platforms": "*",
+  "build": {"flags": ["-std=gnu++17", "-fexceptions"], "srcFilter": ["+<*.cpp>"]},
+  "export": {"include": ["src/*", "vendor/*", "library.json", "library.properties", "LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "docs/*", "demos/*"]},
+  "dependencies": [
+    {"name": "ESPressio-System", "version": "https://github.com/ESPressio-Development-Platform/ESPressio-System.git#structural_realignment"}
+  ]
+}
