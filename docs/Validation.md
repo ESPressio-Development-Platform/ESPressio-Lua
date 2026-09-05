@@ -19,3 +19,7 @@ The workflow builds native sanitizer regressions and the ESP32 PlatformIO demo. 
 For private cross-repository checkout, GitHub may require an organization/repository secret named `ESPRESSIO_REPOSITORY_TOKEN` with read access to ESPressio-System. The workflow falls back to the normal GitHub token for installations where it has sufficient access. This implementation does not create or change credentials, organization settings or another repository.
 
 Local test outcomes are independent of GitHub runner availability, billing limits or checkout credentials. Consult the workflow result for the current commit before treating CI as passed.
+
+### First GitHub run
+
+[Run 33971612429](https://github.com/ESPressio-Development-Platform/ESPressio-Lua/actions/runs/33971612429), commit `ebd525b608e1f5b298a31034d6ee9bd1e7db544c`: both jobs ended in failure after approximately two seconds, with no executed steps. Job logs were unavailable (404). The accessible metadata does not establish the precise startup failure reason; this is not recorded as a test failure or a passing CI run. Local executed verification above remains the evidence for this implementation. No rerun or organization/credential change was attempted.
