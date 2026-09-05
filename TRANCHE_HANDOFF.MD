@@ -6,3 +6,4 @@ Follow Policy/DEMO_POLICY.MD, ABSTRACTION_POLICY.MD, DOCUMENTATION_POLICY.MD, GI
 
 ## Activity
 - 2026-09-05T14:54:52.223Z: Inspected existing demos and policies; investigating Command dependency and preserving Lua runtime API.
+- 2026-09-05T15:01:18.559Z: Implemented device classes, reusable Lua definitions, variadic print adapter, Command registry adapter and bounded Serial input. Created equivalent Arduino/PlatformIO sources. Command uses its Mesh propagation branch and System/Observable inspected headers. Starting native behavior checks and ESP32 builds; no library API or external repository changed.
