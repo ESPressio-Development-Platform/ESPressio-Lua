@@ -1,0 +1,65 @@
+name: Lua bindings
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'vendor/**', 'tests/**', 'demos/**', 'tools/**', 'CMakeLists.txt', 'library.*', '.github/workflows/tests.yml']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Lua
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: structural_realignment
+          path: ESPressio-System
+          token: ${{ secrets.ESPRESSIO_REPOSITORY_TOKEN || github.token }}
+      - name: Verify upstream source and demo copies
+        run: python3 ESPressio-Lua/tools/verify_sources.py
+      - name: Configure sanitizer build
+        run: cmake -S ESPressio-Lua -B build -DESPRESSIO_SYSTEM_DIR="$GITHUB_WORKSPACE/ESPressio-System" -DESPRESSIO_LUA_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug
+      - name: Build
+        run: cmake --build build --parallel 2
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+  esp32:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Lua
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: structural_realignment
+          path: ESPressio-System
+          token: ${{ secrets.ESPRESSIO_REPOSITORY_TOKEN || github.token }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PlatformIO
+        run: pip install platformio==6.1.19
+      - name: Prepare local dependency demo build
+        shell: bash
+        run: |
+          mkdir -p compile
+          cp -R ESPressio-Lua/demos/NativeBindings/platformio/src compile/src
+          cat > compile/platformio.ini <<EOF_INI
+          [env:esp32dev]
+          platform = espressif32@6.9.0
+          board = esp32dev
+          framework = arduino
+          build_unflags = -std=gnu++11 -fno-exceptions
+          build_flags = -std=gnu++17 -fexceptions
+          lib_deps =
+              symlink://$GITHUB_WORKSPACE/ESPressio-System
+              symlink://$GITHUB_WORKSPACE/ESPressio-Lua
+          EOF_INI
+      - name: Compile and link demo firmware
+        run: pio run -d compile
