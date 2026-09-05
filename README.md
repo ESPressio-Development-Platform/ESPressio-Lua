@@ -58,37 +58,71 @@ struct Colour {
 };
 ```
 
-Describe and register its Lua interface:
+### Define Lua Type Representation
+
+Describe which members of the native `Colour` type Lua can access. These three sections form one sequential example; put the include and namespace alias at file scope, and the setup statements inside your initialization function.
 
 ```cpp
 #include <ESPressio_Lua.hpp>
 namespace Lua = ESPressio::Lua;
 
-Colour statusColour{0, 255, 0}; // Must outlive the scripting instance.
+// Declare before the scripting instance so this object outlives it.
+Colour statusColour{0, 255, 0};
+
 Lua::Type<Colour> colourType{"Colour"};
-colourType.constructor<int, int, int>()
+colourType
     .field("red", &Colour::red)
     .field("green", &Colour::green)
     .field("blue", &Colour::blue)
     .method("clear", &Colour::clear);
+```
+
+This definition exposes the listed fields and method. It does not yet expose a constructor or register anything with a scripting instance.
+
+### Register Constructible Lua Type
+
+Explicitly expose the native constructor, then install the definition in a scripting instance. Add constructors and members before registration: the definition becomes immutable on first registration.
+
+```cpp
+colourType.constructor<int, int, int>();
 
 Lua::Instance script;
 auto result = script.initializationResult();
 if (!result) { /* Report result.message and stop initialization. */ return; }
+
 result = script.registerType(colourType);
 if (!result) { /* Report result.message. */ return; }
-result = script.registerInstance("statusColour", colourType, statusColour, Lua::Borrowed);
-if (!result) { /* Report result.message. */ return; }
+
 result = script.execute(R"lua(
     local colour = Colour(0, 128, 255)
     colour.red = 64
     colour:clear()
-    statusColour.blue = 128
 )lua");
 if (!result) { /* Report result.message. */ return; }
 ```
 
-The local `colour` is Lua-owned; its C++ destructor runs on garbage collection or VM shutdown. `statusColour` remains application-owned. Registering a type without `.constructor<...>()` still allows borrowed objects but does not allow Lua construction.
+Lua owns the constructed `colour`; its C++ destructor runs on garbage collection or VM shutdown.
+
+### Register C++ Instance with Lua
+
+Expose the existing application-owned `statusColour` through the same registered type definition:
+
+```cpp
+result = script.registerInstance(
+    "statusColour", colourType, statusColour, Lua::Borrowed);
+if (!result) { /* Report result.message. */ return; }
+
+result = script.execute(R"lua(
+    statusColour.blue = 128
+)lua");
+if (!result) { /* Report result.message. */ return; }
+
+// The original C++ object now has statusColour.blue == 128.
+```
+
+Lua accesses the original object without copying it, and only through the members exposed by `colourType`. `Lua::Borrowed` leaves ownership with the application: Lua does not delete the object, which must outlive the scripting instance.
+
+To expose only existing C++ instances, omit `.constructor<...>()` from the previous section but still call `script.registerType(colourType)` before `registerInstance`. Lua can then use the registered objects without constructing new ones.
 
 The [complete compilable demos](demos/NativeBindings/README.md) add computed properties, read-only properties, a module, and host-to-Lua function calls. [Binding guide](docs/Bindings.md) covers reuse, alternative views, overloads, conversions and errors.
 
