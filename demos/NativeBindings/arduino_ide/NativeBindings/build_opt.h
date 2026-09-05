@@ -1,0 +1,2 @@
+-std=gnu++17
+-fexceptions
