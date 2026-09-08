@@ -2,7 +2,29 @@
 #include "detail/ESPressio_LuaBinding.hpp"
 namespace ESPressio::Lua {
 namespace Detail {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - name (String): 12 bytes [Capacity + 1 bytes backing buffer when allocated]
+ * - call (Memory::SharedPtr<Callable>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * - function (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 24 bytes [name: Capacity + 1 bytes backing buffer when allocated; call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 struct Symbol { String name; Memory::SharedPtr<const Callable> call; bool function; };
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - name (String): 12 bytes [Capacity + 1 bytes backing buffer when allocated]
+ * - frozen (bool): 1 bytes [0 bytes dynamic allocation]
+ * - symbols (Memory::Vector<Symbol>): 16 bytes [Capacity * (24 bytes) element storage; N live elements each: name: Capacity + 1 bytes backing buffer when allocated; N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Total Memory: 32 bytes [name: Capacity + 1 bytes backing buffer when allocated; symbols: Capacity * (24 bytes) element storage; symbols: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; symbols: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 struct ModuleData {
     String name;
     bool frozen = false;
@@ -17,6 +39,15 @@ struct ModuleData {
 }
 /// <summary>Reusable read-only Lua namespace containing native functions and copied constants.</summary>
 /// <remarks>Copies share identity; first registration freezes the definition. Register enum members as constants.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - data_ (Memory::SharedPtr<Detail::ModuleData>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 32 bytes; pointee: name: Capacity + 1 bytes backing buffer when allocated; pointee: symbols: Capacity * (24 bytes) element storage; pointee: symbols: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; pointee: symbols: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Total Memory: 8 bytes [data_: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 32 bytes; data_: pointee: name: Capacity + 1 bytes backing buffer when allocated; data_: pointee: symbols: Capacity * (24 bytes) element storage; data_: pointee: symbols: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; data_: pointee: symbols: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class Module {
     Memory::SharedPtr<Detail::ModuleData> data_;
     friend class Instance;

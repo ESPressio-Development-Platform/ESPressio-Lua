@@ -10,6 +10,17 @@ using namespace ESPressio::Lua;
 #define CHECK(x) do { if (!(x)) { std::fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #x); std::abort(); } } while (false)
 static void good(Result r) { if (!r) { std::fprintf(stderr, "Unexpected error: %s\n", r.message); std::abort(); } }
 
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - red (int): 4 bytes [0 bytes dynamic allocation]
+ * - green (int): 4 bytes [0 bytes dynamic allocation]
+ * - blue (int): 4 bytes [0 bytes dynamic allocation]
+ * - channels (int): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 16 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct Colour {
     static inline int live = 0;
     int red, green, blue;
@@ -139,7 +150,14 @@ static void functionsAndConversions() {
     good(vm.registerFunction("floating", [](float value) { return value; }));
     good(vm.registerConstant("MAX", 255));
     good(vm.registerConstant("TEXT", "hello"));
-    enum class Mode { Training = 3 };
+        /**
+     * ESPressio Memory Audit
+     * Underlying storage: 4 bytes
+     * Total Memory: 4 bytes [0 bytes dynamic allocation]
+     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+     * End ESPressio Memory Audit
+     */
+enum class Mode { Training = 3 };
     good(vm.registerConstant("TRAINING", Mode::Training));
     good(vm.execute(R"(
         assert(add(1,2)==3 and TEXT=='hello' and TRAINING==3)
@@ -173,6 +191,13 @@ static void functionsAndConversions() {
     CHECK(!vm.registerConstant(std::string_view("a\0b", 3), 2));
 }
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct Throwing {
     static inline int live = 0;
     Throwing(int value) { if (value) throw std::runtime_error("constructor failed"); ++live; }
@@ -206,8 +231,28 @@ static void errorRecovery() {
 }
 
 /// A real System provider checking alignment, exact deallocation, failed growth and provider capture.
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - blocks (std::map<void*,Block>): 4 bytes [0 bytes dynamic allocation]
+ * - fail (bool): 1 bytes [0 bytes dynamic allocation]
+ * - failAfter (int): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 16 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct TrackingProvider final : Memory::IMemoryProvider {
-    struct Block { std::size_t size, alignment; };
+        /**
+     * ESPressio Memory Audit
+     * Members:
+     * - size (std::size_t): 4 bytes [0 bytes dynamic allocation]
+     * - alignment (std::size_t): 4 bytes [0 bytes dynamic allocation]
+     * Total Memory: 8 bytes [0 bytes dynamic allocation]
+     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+     * End ESPressio Memory Audit
+     */
+struct Block { std::size_t size, alignment; };
     std::map<void*,Block> blocks;
     bool fail = false;
     int failAfter = -1;
@@ -225,6 +270,14 @@ struct TrackingProvider final : Memory::IMemoryProvider {
     }
     bool Supports(Memory::MemoryPolicy) const noexcept override {return true;}
 };
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - value (int): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct alignas(128) Aligned { int value=7; };
 static void finalizerBudgets() {
     Instance vm;

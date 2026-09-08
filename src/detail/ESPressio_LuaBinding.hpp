@@ -10,6 +10,18 @@ namespace ESPressio::Lua::Detail {
 using String = Memory::String<>;
 
 /// <summary>Accounts actual Lua and native-object storage against a captured provider and byte budget.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - provider (Memory::IMemoryProvider*): 4 bytes [0 bytes dynamic allocation]
+ * - policy (Memory::MemoryPolicy): 1 bytes [0 bytes dynamic allocation]
+ * - limit (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - used (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - peak (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 20 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct MemoryAccount {
     Memory::IMemoryProvider* provider;
     Memory::MemoryPolicy policy;
@@ -31,7 +43,15 @@ struct MemoryAccount {
         provider->Deallocate(block, bytes, alignment, policy);
         used -= bytes;
     }
-    struct alignas(std::max_align_t) Header { std::size_t capacity; };
+        /**
+     * ESPressio Memory Audit
+     * Members:
+     * - capacity (std::size_t): 4 bytes [0 bytes dynamic allocation]
+     * Total Memory: 4 bytes [0 bytes dynamic allocation]
+     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+     * End ESPressio Memory Audit
+     */
+struct alignas(std::max_align_t) Header { std::size_t capacity; };
     static void* reallocate(void* context, void* pointer, std::size_t oldSize, std::size_t newSize) noexcept {
         auto& account = *static_cast<MemoryAccount*>(context);
         auto* oldHeader = pointer ? static_cast<Header*>(pointer) - 1 : nullptr;
@@ -56,6 +76,17 @@ struct MemoryAccount {
 
 struct TypeData;
 /// <summary>Native object wrapper. Only the owning form destroys/releases the native allocation.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - pointer (void*): 4 bytes [0 bytes dynamic allocation]
+ * - type (TypeData*): 4 bytes [0 bytes dynamic allocation]
+ * - account (MemoryAccount*): 4 bytes [0 bytes dynamic allocation]
+ * - noexcept (void (*destroy)(Object&)): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 16 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct Object {
     void* pointer = nullptr;
     const TypeData* type = nullptr;
@@ -64,10 +95,27 @@ struct Object {
 };
 
 /// <summary>Type-erased native operation allocated through ESPressio System.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic/virtual-base object metadata is included in the total.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct Callable {
     virtual ~Callable() = default;
     virtual int invoke(lua_State*, Object*, int) const = 0;
 };
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - function (F): sizeof(F) [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known/aligned storage + sizeof(F) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 template<class F> struct CallableModel final : Callable {
     F function;
     explicit CallableModel(F value) : function(std::move(value)) {}
@@ -76,13 +124,47 @@ template<class F> struct CallableModel final : Callable {
 template<class F> Memory::SharedPtr<const Callable> callable(F function) {
     return Memory::MakeShared<CallableModel<F>>(std::move(function));
 }
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - name (String): 12 bytes [Capacity + 1 bytes backing buffer when allocated]
+ * - method (Memory::SharedPtr<Callable>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * - getter (Memory::SharedPtr<Callable>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * - setter (Memory::SharedPtr<Callable>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Total Memory: 36 bytes [name: Capacity + 1 bytes backing buffer when allocated; method: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; getter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; setter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 struct Member {
     String name;
     Memory::SharedPtr<const Callable> method;
     Memory::SharedPtr<const Callable> getter;
     Memory::SharedPtr<const Callable> setter;
 };
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - arity (int): 4 bytes [0 bytes dynamic allocation]
+ * - call (Memory::SharedPtr<Callable>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Total Memory: 12 bytes [call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 struct Constructor { int arity; Memory::SharedPtr<const Callable> call; };
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - name (String): 12 bytes [Capacity + 1 bytes backing buffer when allocated]
+ * - frozen (bool): 1 bytes [0 bytes dynamic allocation]
+ * - members (Memory::Vector<Member>): 16 bytes [Capacity * (36 bytes) element storage; N live elements each: name: Capacity + 1 bytes backing buffer when allocated; N live elements each: method: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; N live elements each: getter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; N live elements each: setter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * - constructors (Memory::Vector<Constructor>): 16 bytes [Capacity * (12 bytes) element storage; N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Total Memory: 48 bytes [name: Capacity + 1 bytes backing buffer when allocated; members: Capacity * (36 bytes) element storage; members: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; members: N live elements each: method: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; members: N live elements each: getter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; members: N live elements each: setter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; constructors: Capacity * (12 bytes) element storage; constructors: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 struct TypeData {
     String name;
     bool frozen = false;
@@ -140,12 +222,67 @@ template<class Tuple, std::size_t... I> auto arguments(lua_State* state, int sta
     // List initialization validates left-to-right before entering application code.
     return std::tuple<std::decay_t<std::tuple_element_t<I, Tuple>>...>{argument<std::tuple_element_t<I, Tuple>>(state, start + static_cast<int>(I))...};
 }
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class F> struct Traits : Traits<decltype(&F::operator())> {};
+/**
+ * ESPressio Memory Audit
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class R, class... A> struct Traits<R(*)(A...)> { using Return = R; using Args = std::tuple<A...>; };
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class R, class... A> struct Traits<R(*)(A...) noexcept> : Traits<R(*)(A...)> {};
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class C, class R, class... A> struct Traits<R(C::*)(A...)> : Traits<R(*)(A...)> {};
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class C, class R, class... A> struct Traits<R(C::*)(A...) const> : Traits<R(*)(A...)> {};
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class C, class R, class... A> struct Traits<R(C::*)(A...) noexcept> : Traits<R(*)(A...)> {};
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class C, class R, class... A> struct Traits<R(C::*)(A...) const noexcept> : Traits<R(*)(A...)> {};
 
 template<class R, class F> int result(lua_State* state, F&& call) {

@@ -5,6 +5,15 @@ namespace ESPressio::Lua {
 class Instance;
 /// <summary>Reusable Lua-facing definition of an unmodified native C++ type.</summary>
 /// <remarks>Copies share identity. First registration freezes every copy. Instances retain definition storage.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - data_ (Memory::SharedPtr<Detail::TypeData>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 48 bytes; pointee: name: Capacity + 1 bytes backing buffer when allocated; pointee: members: Capacity * (36 bytes) element storage; pointee: members: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; pointee: members: N live elements each: method: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; pointee: members: N live elements each: getter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; pointee: members: N live elements each: setter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; pointee: constructors: Capacity * (12 bytes) element storage; pointee: constructors: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Total Memory: 8 bytes [data_: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 48 bytes; data_: pointee: name: Capacity + 1 bytes backing buffer when allocated; data_: pointee: members: Capacity * (36 bytes) element storage; data_: pointee: members: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; data_: pointee: members: N live elements each: method: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; data_: pointee: members: N live elements each: getter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; data_: pointee: members: N live elements each: setter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; data_: pointee: constructors: Capacity * (12 bytes) element storage; data_: pointee: constructors: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 template<class T> class Type {
     Memory::SharedPtr<Detail::TypeData> data_;
     friend class Instance;
@@ -88,6 +97,13 @@ public:
     }
 };
 /// <summary>Explicit non-owning registration. The native object must outlive the scripting instance.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct BorrowedOwnership {};
 inline constexpr BorrowedOwnership Borrowed{};
 } // namespace ESPressio::Lua

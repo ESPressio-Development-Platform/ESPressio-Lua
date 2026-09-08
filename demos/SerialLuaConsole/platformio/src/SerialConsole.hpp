@@ -5,6 +5,18 @@
 
 namespace SerialLua {
 /// <summary>Bounded, nonblocking Serial line reader with CR/LF and backspace handling.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - handler_ (LuaCommandHandler&): 4 bytes [0 bytes dynamic allocation]
+ * - line_ (char[Config::lineCapacity]): 1024 bytes [0 bytes dynamic allocation]
+ * - used_ (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - overflow_ (bool): 1 bytes [0 bytes dynamic allocation]
+ * - previousCR_ (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 1036 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class SerialConsole {
     LuaCommandHandler& handler_;
     char line_[Config::lineCapacity]{};

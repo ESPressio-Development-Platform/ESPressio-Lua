@@ -17,6 +17,15 @@ namespace ESPressio::Lua {
 namespace Memory = ESPressio::System::Memory;
 
 /// <summary>Reports invalid host registration or value conversion without allocating a message.</summary>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - message_ (char*): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 12 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class BindingError : public std::exception {
     const char* message_;
 public:
@@ -37,6 +46,13 @@ inline void nameCheck(std::string_view name) {
 
 /// <summary>Specialize for additional value types. read must validate; push leaves exactly one Lua value.</summary>
 /// <remarks>Raw native pointers/references have no implicit conversion or automatic exposure.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class T, class Enable = void> struct Converter {
     static T read(lua_State*, int) {
         static_assert(Detail::Unsupported<T>, "Provide ESPressio::Lua::Converter<T> for this value type");
@@ -47,6 +63,13 @@ template<class T, class Enable = void> struct Converter {
 };
 
 /// <summary>Strict boolean conversion; numbers and strings are not silently coerced.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<> struct Converter<bool> {
     static bool read(lua_State* state, int index) {
         Detail::require(lua_type(state, index) == LUA_TBOOLEAN, "Expected boolean");
@@ -56,6 +79,13 @@ template<> struct Converter<bool> {
 };
 
 /// <summary>Checked integral conversion, preserving Lua's signed integer range.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class T> struct Converter<T, std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>>> {
     static T read(lua_State* state, int index) {
         Detail::require(lua_isinteger(state, index), "Expected integer");
@@ -82,6 +112,13 @@ template<class T> struct Converter<T, std::enable_if_t<std::is_integral_v<T> && 
 };
 
 /// <summary>Finite numeric conversion with overflow checks; numeric strings are rejected.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class T> struct Converter<T, std::enable_if_t<std::is_floating_point_v<T>>> {
     static T read(lua_State* state, int index) {
         Detail::require(lua_type(state, index) == LUA_TNUMBER, "Expected number");
@@ -96,6 +133,13 @@ template<class T> struct Converter<T, std::enable_if_t<std::is_floating_point_v<
 };
 
 /// <summary>Enum values use their checked underlying integer representation; register named constants separately.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class T> struct Converter<T, std::enable_if_t<std::is_enum_v<T>>> {
     using Underlying = std::underlying_type_t<T>;
     static T read(lua_State* state, int index) { return static_cast<T>(Converter<Underlying>::read(state, index)); }
@@ -103,6 +147,13 @@ template<class T> struct Converter<T, std::enable_if_t<std::is_enum_v<T>>> {
 };
 
 /// <summary>Binary-safe owning string conversion, including ESPressio allocator-backed strings.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class Traits, class Allocator> struct Converter<std::basic_string<char, Traits, Allocator>> {
     using String = std::basic_string<char, Traits, Allocator>;
     static String read(lua_State* state, int index) {
@@ -115,6 +166,13 @@ template<class Traits, class Allocator> struct Converter<std::basic_string<char,
 };
 
 /// <summary>Non-owning string input remains valid only during the native call. Lua copies output strings.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<> struct Converter<std::string_view> {
     static std::string_view read(lua_State* state, int index) {
         Detail::require(lua_type(state, index) == LUA_TSTRING, "Expected string");
@@ -126,6 +184,13 @@ template<> struct Converter<std::string_view> {
 };
 
 /// <summary>C strings are copied on output; nil maps to null. Inputs must not be retained beyond the call.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<> struct Converter<const char*> {
     static const char* read(lua_State* state, int index) {
         if (lua_isnil(state, index)) return nullptr;
@@ -137,6 +202,13 @@ template<> struct Converter<const char*> {
 };
 
 /// <summary>Missing optional values are represented by nil.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 template<class T> struct Converter<std::optional<T>> {
     static std::optional<T> read(lua_State* state, int index) {
         if (lua_isnil(state, index)) return std::nullopt;

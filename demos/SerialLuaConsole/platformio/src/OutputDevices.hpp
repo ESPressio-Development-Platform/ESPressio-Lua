@@ -6,6 +6,16 @@
 // This demo application owns the Arduino GPIO implementation; the Lua library stays hardware-neutral.
 namespace SerialLua {
 /// <summary>On/off LED with optional active-low wiring and readable logical state.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - pin_ (int): 4 bytes [0 bytes dynamic allocation]
+ * - activeLow_ (bool): 1 bytes [0 bytes dynamic allocation]
+ * - on_ (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class Led {
     int pin_;
     bool activeLow_;
@@ -33,6 +43,15 @@ public:
 };
 
 /// <summary>Three-channel PWM RGB LED; channel values are integers from 0 to 255.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - activeLow_ (bool): 1 bytes [0 bytes dynamic allocation]
+ * - red_ (int): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class RgbLed {
     bool activeLow_;
     int red_ = 0, green_ = 0, blue_ = 0;
@@ -80,6 +99,14 @@ public:
 };
 
 /// <summary>Passive buzzer driven by an independent PWM timer; initially silent.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - frequency_ (int): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class Buzzer {
     int frequency_ = 0;
 public:

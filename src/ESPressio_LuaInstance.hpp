@@ -11,8 +11,24 @@
 
 namespace ESPressio::Lua {
 /// <summary>Outcome of a protected host operation.</summary>
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 4 bytes
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 enum class Status { Success, InvalidState, Busy, SyntaxError, RuntimeError, MemoryError, InstructionLimit };
 /// <summary>Allocation-free operation result. Messages may be truncated to 511 bytes.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - status (Status): 4 bytes [0 bytes dynamic allocation]
+ * - message (char[512]): 512 bytes [0 bytes dynamic allocation]
+ * Total Memory: 516 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct Result {
     Status status = Status::Success;
     char message[512]{};
@@ -24,6 +40,23 @@ struct Result {
     }
 };
 /// <summary>Per-instance resource and standard-library configuration.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - memoryProvider (Memory::IMemoryProvider*): 4 bytes [0 bytes dynamic allocation]
+ * - memoryPolicy (Memory::MemoryPolicy): 1 bytes [0 bytes dynamic allocation]
+ * - memoryLimitBytes (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - instructionLimit (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - hashSeed (unsigned int): 4 bytes [0 bytes dynamic allocation]
+ * - baseLibrary (bool): 1 bytes [0 bytes dynamic allocation]
+ * - tableLibrary (bool): 1 bytes [0 bytes dynamic allocation]
+ * - stringLibrary (bool): 1 bytes [0 bytes dynamic allocation]
+ * - mathLibrary (bool): 1 bytes [0 bytes dynamic allocation]
+ * - utf8Library (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 28 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct Configuration {
     /// <summary>Captured at construction; the provider must outlive the scripting instance.</summary>
     Memory::IMemoryProvider* memoryProvider = nullptr;
@@ -44,9 +77,47 @@ struct Configuration {
 /// <summary>Owns an independent Lua VM and its registered capabilities.</summary>
 /// <remarks>Concurrent/reentrant operations return Busy. Destruction requires external quiescence.
 /// Borrowed objects, callable captures and providers must remain alive. No raw lua_State is exposed.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - modules_ (Memory::Vector<ModuleRegistration>): 16 bytes [Capacity * (12 bytes) element storage; N live elements each: module: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 32 bytes; N live elements each: module: pointee: name: Capacity + 1 bytes backing buffer when allocated; N live elements each: module: pointee: symbols: Capacity * (24 bytes) element storage; N live elements each: module: pointee: symbols: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; N live elements each: module: pointee: symbols: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * - configuration_ (Configuration): 28 bytes [0 bytes dynamic allocation]
+ * - memory_ (Detail::MemoryAccount): 20 bytes [0 bytes dynamic allocation]
+ * - state_ (lua_State*): 4 bytes [0 bytes dynamic allocation]
+ * - types_ (Memory::Vector<Registration>): 16 bytes [Capacity * (12 bytes) element storage; N live elements each: type: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 48 bytes; N live elements each: type: pointee: name: Capacity + 1 bytes backing buffer when allocated; N live elements each: type: pointee: members: Capacity * (36 bytes) element storage; N live elements each: type: pointee: members: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; N live elements each: type: pointee: members: N live elements each: method: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; N live elements each: type: pointee: members: N live elements each: getter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; N live elements each: type: pointee: members: N live elements each: setter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; N live elements each: type: pointee: constructors: Capacity * (12 bytes) element storage; N live elements each: type: pointee: constructors: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * - functions_ (Memory::Vector<Memory::SharedPtr<Detail::Callable>>): 16 bytes [Capacity * (8 bytes) element storage; N live elements each: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * - active_ (std::atomic_flag): 1 bytes [0 bytes dynamic allocation]
+ * - instructionsRemaining_ (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - instructionExceeded_ (bool): 1 bytes [0 bytes dynamic allocation]
+ * - initialization_ (Result): 516 bytes [0 bytes dynamic allocation]
+ * Total Memory: 628 bytes [modules_: Capacity * (12 bytes) element storage; modules_: N live elements each: module: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 32 bytes; modules_: N live elements each: module: pointee: name: Capacity + 1 bytes backing buffer when allocated; modules_: N live elements each: module: pointee: symbols: Capacity * (24 bytes) element storage; modules_: N live elements each: module: pointee: symbols: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; modules_: N live elements each: module: pointee: symbols: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; types_: Capacity * (12 bytes) element storage; types_: N live elements each: type: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 48 bytes; types_: N live elements each: type: pointee: name: Capacity + 1 bytes backing buffer when allocated; types_: N live elements each: type: pointee: members: Capacity * (36 bytes) element storage; types_: N live elements each: type: pointee: members: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; types_: N live elements each: type: pointee: members: N live elements each: method: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; types_: N live elements each: type: pointee: members: N live elements each: getter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; types_: N live elements each: type: pointee: members: N live elements each: setter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; types_: N live elements each: type: pointee: constructors: Capacity * (12 bytes) element storage; types_: N live elements each: type: pointee: constructors: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; functions_: Capacity * (8 bytes) element storage; functions_: N live elements each: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class Instance final {
-    struct Registration { Memory::SharedPtr<Detail::TypeData> type; bool installed = false; };
-    struct ModuleRegistration { Memory::SharedPtr<Detail::ModuleData> module; bool installed = false; };
+        /**
+     * ESPressio Memory Audit
+     * Members:
+     * - type (Memory::SharedPtr<Detail::TypeData>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 48 bytes; pointee: name: Capacity + 1 bytes backing buffer when allocated; pointee: members: Capacity * (36 bytes) element storage; pointee: members: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; pointee: members: N live elements each: method: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; pointee: members: N live elements each: getter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; pointee: members: N live elements each: setter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; pointee: constructors: Capacity * (12 bytes) element storage; pointee: constructors: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+     * - installed (bool): 1 bytes [0 bytes dynamic allocation]
+     * Total Memory: 12 bytes [type: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 48 bytes; type: pointee: name: Capacity + 1 bytes backing buffer when allocated; type: pointee: members: Capacity * (36 bytes) element storage; type: pointee: members: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; type: pointee: members: N live elements each: method: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; type: pointee: members: N live elements each: getter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; type: pointee: members: N live elements each: setter: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; type: pointee: constructors: Capacity * (12 bytes) element storage; type: pointee: constructors: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+     * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+     * End ESPressio Memory Audit
+     */
+struct Registration { Memory::SharedPtr<Detail::TypeData> type; bool installed = false; };
+        /**
+     * ESPressio Memory Audit
+     * Members:
+     * - module (Memory::SharedPtr<Detail::ModuleData>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 32 bytes; pointee: name: Capacity + 1 bytes backing buffer when allocated; pointee: symbols: Capacity * (24 bytes) element storage; pointee: symbols: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; pointee: symbols: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+     * - installed (bool): 1 bytes [0 bytes dynamic allocation]
+     * Total Memory: 12 bytes [module: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 32 bytes; module: pointee: name: Capacity + 1 bytes backing buffer when allocated; module: pointee: symbols: Capacity * (24 bytes) element storage; module: pointee: symbols: N live elements each: name: Capacity + 1 bytes backing buffer when allocated; module: pointee: symbols: N live elements each: call: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
+     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+     * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+     * End ESPressio Memory Audit
+     */
+struct ModuleRegistration { Memory::SharedPtr<Detail::ModuleData> module; bool installed = false; };
     Memory::Vector<ModuleRegistration> modules_;
     Configuration configuration_;
     Detail::MemoryAccount memory_;
@@ -119,7 +190,16 @@ class Instance final {
     template<class F> Result run(F&& function, bool budget = false) {
         if (!state_) return Result::failure(Status::InvalidState, "Lua instance is not initialized");
         if (active_.test_and_set(std::memory_order_acquire)) return Result::failure(Status::Busy, "Lua instance is already executing");
-        struct Exit {
+                /**
+         * ESPressio Memory Audit
+         * Members:
+         * - owner (Instance&): 4 bytes [0 bytes dynamic allocation]
+         * - top (int): 4 bytes [0 bytes dynamic allocation]
+         * Total Memory: 8 bytes [0 bytes dynamic allocation]
+         * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+         * End ESPressio Memory Audit
+         */
+struct Exit {
             Instance& owner; int top;
             ~Exit() { lua_sethook(owner.state_, nullptr, 0, 0); lua_settop(owner.state_, top); owner.active_.clear(std::memory_order_release); }
         } exit{*this, lua_gettop(state_)};
@@ -167,7 +247,17 @@ class Instance final {
         return false;
     }
     void initializeLibraries(lua_State* state) {
-        const struct { const char* name; lua_CFunction open; bool enabled; } libraries[] = {
+        const         /**
+         * ESPressio Memory Audit
+         * Members:
+         * - name (char*): 4 bytes [0 bytes dynamic allocation]
+         * - open (lua_CFunction): 4 bytes [0 bytes dynamic allocation]
+         * - enabled (bool): 1 bytes [0 bytes dynamic allocation]
+         * Total Memory: 12 bytes [0 bytes dynamic allocation]
+         * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+         * End ESPressio Memory Audit
+         */
+struct { const char* name; lua_CFunction open; bool enabled; } libraries[] = {
             {LUA_GNAME, luaopen_base, configuration_.baseLibrary},
             {LUA_TABLIBNAME, luaopen_table, configuration_.tableLibrary},
             {LUA_STRLIBNAME, luaopen_string, configuration_.stringLibrary},

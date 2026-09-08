@@ -6,6 +6,14 @@
 namespace SerialLua {
 /// <summary>Installs variadic Lua print using tostring, tabs and a trailing newline.</summary>
 /// <remarks>Must outlive the VM because the registered native writer captures this object.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - remaining_ (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 class LuaSerialPrint {
     std::size_t remaining_ = Config::outputBudget;
 public:
