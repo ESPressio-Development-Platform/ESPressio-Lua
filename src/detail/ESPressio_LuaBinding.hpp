@@ -43,14 +43,14 @@ struct MemoryAccount {
         provider->Deallocate(block, bytes, alignment, policy);
         used -= bytes;
     }
-        /**
-     * ESPressio Memory Audit
-     * Members:
-     * - capacity (std::size_t): 4 bytes [0 bytes dynamic allocation]
-     * Total Memory: 4 bytes [0 bytes dynamic allocation]
-     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
-     * End ESPressio Memory Audit
-     */
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - capacity (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct alignas(std::max_align_t) Header { std::size_t capacity; };
     static void* reallocate(void* context, void* pointer, std::size_t oldSize, std::size_t newSize) noexcept {
         auto& account = *static_cast<MemoryAccount*>(context);

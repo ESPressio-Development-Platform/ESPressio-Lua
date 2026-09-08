@@ -150,13 +150,13 @@ static void functionsAndConversions() {
     good(vm.registerFunction("floating", [](float value) { return value; }));
     good(vm.registerConstant("MAX", 255));
     good(vm.registerConstant("TEXT", "hello"));
-        /**
-     * ESPressio Memory Audit
-     * Underlying storage: 4 bytes
-     * Total Memory: 4 bytes [0 bytes dynamic allocation]
-     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
-     * End ESPressio Memory Audit
-     */
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 4 bytes
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 enum class Mode { Training = 3 };
     good(vm.registerConstant("TRAINING", Mode::Training));
     good(vm.execute(R"(
@@ -243,15 +243,15 @@ static void errorRecovery() {
  * End ESPressio Memory Audit
  */
 struct TrackingProvider final : Memory::IMemoryProvider {
-        /**
-     * ESPressio Memory Audit
-     * Members:
-     * - size (std::size_t): 4 bytes [0 bytes dynamic allocation]
-     * - alignment (std::size_t): 4 bytes [0 bytes dynamic allocation]
-     * Total Memory: 8 bytes [0 bytes dynamic allocation]
-     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
-     * End ESPressio Memory Audit
-     */
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - size (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - alignment (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * End ESPressio Memory Audit
+ */
 struct Block { std::size_t size, alignment; };
     std::map<void*,Block> blocks;
     bool fail = false;
