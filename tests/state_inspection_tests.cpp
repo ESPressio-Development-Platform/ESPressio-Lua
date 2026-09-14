@@ -71,7 +71,7 @@ std::string EncodeExpected(const ScriptValue& value) {
     std::array<std::uint8_t, Serializable::MaximumSerializedSize<ScriptValue, Format>> bytes{};
     const auto encoded = [&] {
         if constexpr (std::is_same_v<Format, Serializable::DirectBinary>) {
-            return Serializable::SerializeBoundedDirectBinary(value, bytes.data(), bytes.size());
+            return Serializable::SerializeDirectBinary(value, bytes.data(), bytes.size());
         } else if constexpr (std::is_same_v<Format, Serializable::CBOR>) {
             return Serializable::SerializeBoundedCbor(value, bytes.data(), bytes.size());
         } else {
