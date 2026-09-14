@@ -1,0 +1,74 @@
+name: Lua State Inspection Contract
+
+on:
+  push:
+    branches: [primitives_redesign]
+    paths:
+      - 'src/ESPressio_LuaState.hpp'
+      - 'src/ESPressio_Lua.hpp'
+      - 'tests/state_inspection_tests.cpp'
+      - 'CMakeLists.txt'
+      - '.github/workflows/primitives-redesign-state.yml'
+  pull_request:
+    paths:
+      - 'src/ESPressio_LuaState.hpp'
+      - 'src/ESPressio_Lua.hpp'
+      - 'tests/state_inspection_tests.cpp'
+      - 'CMakeLists.txt'
+      - '.github/workflows/primitives-redesign-state.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  state-inspection:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Lua
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-State, ref: primitives_redesign, path: deps/ESPressio-State}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-System, ref: primitives_redesign, path: deps/ESPressio-System}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Primitive, ref: primitives_redesign, path: deps/ESPressio-Primitive}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Task, ref: primitives_redesign, path: deps/ESPressio-Task}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Threads, ref: primitives_redesign, path: deps/ESPressio-Threads}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Timing, ref: primitives_redesign, path: deps/ESPressio-Timing}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Serializable, ref: primitives_redesign, path: deps/ESPressio-Serializable}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Units, ref: primitives_redesign, path: deps/ESPressio-Units}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: primitives_redesign, path: deps/ESPressio-Observable}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Persistence, ref: primitives_redesign, path: deps/ESPressio-Persistence}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Security, ref: primitives_redesign, path: deps/ESPressio-Security}
+
+      - name: Reject mutation or State lifecycle ownership in Lua
+        shell: bash
+        run: |
+          if grep -nE 'StateOwner|BindOwner|SetByTypeId|StateTransport|RemoteSession|ConvergenceSession' ESPressio-Lua/src/ESPressio_LuaState.hpp; then
+            exit 1
+          fi
+
+      - name: Configure D10-11 contract
+        run: >-
+          cmake -S ESPressio-Lua -B build
+          -DESPRESSIO_SYSTEM_DIR="$GITHUB_WORKSPACE/deps/ESPressio-System"
+          -DESPRESSIO_PRIMITIVE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Primitive"
+          -DESPRESSIO_STATE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-State"
+          -DESPRESSIO_STATE_DEPENDENCIES="$GITHUB_WORKSPACE/deps"
+          -DESPRESSIO_LUA_SANITIZE=ON
+          -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build D10-11 State inspection contract
+        run: cmake --build build --target state_inspection_tests --parallel 2
+
+      - name: Run D10-11 State inspection contract
+        run: ctest --test-dir build -R '^state_inspection_tests$' --output-on-failure
