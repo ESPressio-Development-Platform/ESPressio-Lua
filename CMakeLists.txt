@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 project(ESPressioLua LANGUAGES CXX)
 set(ESPRESSIO_SYSTEM_DIR "" CACHE PATH "ESPressio-System checkout at primitives_redesign")
 set(ESPRESSIO_PRIMITIVE_DIR "" CACHE PATH "Optional ESPressio-Primitive checkout at primitives_redesign for Primitive discovery tests")
+set(ESPRESSIO_COMMAND_DIR "" CACHE PATH "Optional ESPressio-Command checkout at primitives_redesign for Command admission tests")
+set(ESPRESSIO_COMMAND_DEPENDENCIES "" CACHE PATH "Directory containing ESPressio Command dependency checkouts")
 if(NOT EXISTS "${ESPRESSIO_SYSTEM_DIR}/src/ESPressio_Memory.hpp")
     message(FATAL_ERROR "Set ESPRESSIO_SYSTEM_DIR to an ESPressio-System primitives_redesign checkout")
 endif()
@@ -40,6 +42,31 @@ if(ESPRESSIO_LUA_BUILD_TESTS)
         target_compile_options(primitive_discovery_tests PRIVATE -Wall -Wextra -Werror)
     endif()
     add_test(NAME primitive_discovery_tests COMMAND primitive_discovery_tests)
+
+    if(EXISTS "${ESPRESSIO_COMMAND_DIR}/src/ESPressio_CommandDescriptor.hpp")
+        set(COMMAND_ADMISSION_INCLUDES
+            "${ESPRESSIO_COMMAND_DIR}/src"
+            "${ESPRESSIO_PRIMITIVE_DIR}/src")
+        foreach(dependency System Task Threads Timing Serializable Units Observable Persistence)
+            if(NOT EXISTS "${ESPRESSIO_COMMAND_DEPENDENCIES}/ESPressio-${dependency}/src")
+                message(FATAL_ERROR "Missing ESPressio-${dependency} checkout for Lua Command admission tests")
+            endif()
+            list(APPEND COMMAND_ADMISSION_INCLUDES
+                "${ESPRESSIO_COMMAND_DEPENDENCIES}/ESPressio-${dependency}/src")
+        endforeach()
+        list(APPEND COMMAND_ADMISSION_INCLUDES
+            "${ESPRESSIO_COMMAND_DEPENDENCIES}/ESPressio-Timing/tests/stubs"
+            "${ESPRESSIO_COMMAND_DEPENDENCIES}/ESPressio-Task/tests")
+
+        add_executable(command_admission_tests tests/command_admission_tests.cpp)
+        target_link_libraries(command_admission_tests PRIVATE espressio_lua Threads::Threads)
+        target_include_directories(command_admission_tests PRIVATE ${COMMAND_ADMISSION_INCLUDES})
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            target_compile_options(command_admission_tests PRIVATE -Wall -Wextra -Werror -fno-rtti -UNDEBUG)
+        endif()
+        add_test(NAME command_admission_tests COMMAND command_admission_tests)
+        set_tests_properties(command_admission_tests PROPERTIES TIMEOUT 30)
+    endif()
 
     set_tests_properties(binding_tests demo_test primitive_discovery_tests PROPERTIES TIMEOUT 30)
 endif()
