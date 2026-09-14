@@ -9,3 +9,7 @@
 #if __has_include(<ESPressio_CommandDescriptor.hpp>) && __has_include(<ESPressio_TypeDirectory.hpp>)
 #include "ESPressio_LuaCommand.hpp"
 #endif
+
+#if __has_include(<ESPressio_EventTypeDescriptor.hpp>) && __has_include(<ESPressio_TypeDirectory.hpp>)
+#include "ESPressio_LuaEvent.hpp"
+#endif
