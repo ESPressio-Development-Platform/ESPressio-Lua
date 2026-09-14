@@ -8,6 +8,7 @@
 #include <atomic>
 #include <cassert>
 #include <chrono>
+#include <cstdio>
 #include <cstdint>
 #include <string_view>
 #include <thread>
@@ -81,6 +82,11 @@ void Eventually(Predicate&& predicate) {
     }
 }
 
+void RequireLuaSuccess(const Lua::Result& result) {
+    if (!result) std::fprintf(stderr, "Lua contract failure: %s\n", result.message);
+    assert(result);
+}
+
 System::DeviceRuntimeIdentity Identity() {
     System::DeviceIdentifier::Storage bytes{};
     bytes[0] = 0x51;
@@ -133,7 +139,7 @@ int main() {
     auto result = instance.execute(R"LUA(
         assert(Command.submitJson(1, [[{"value":41}]]) == Command.Accepted)
     )LUA", "lua-command-json");
-    assert(result);
+    RequireLuaSuccess(result);
     Eventually([&] {
         return owner.Seen.load(std::memory_order_acquire) == 41 &&
                owner.Calls.load(std::memory_order_acquire) == 1;
@@ -142,7 +148,7 @@ int main() {
     result = instance.execute(R"LUA(
         assert(Command.submitJson(1, [[{"value":"invalid"}]]) == Command.SchemaOrDecodeFailure)
     )LUA", "lua-command-invalid-schema");
-    assert(result);
+    RequireLuaSuccess(result);
     assert(owner.Calls.load(std::memory_order_acquire) == 1);
 
     authorizer.Allowed = false;
@@ -152,7 +158,7 @@ int main() {
         end)
         assert(ok == false)
     )LUA", "lua-command-authorization");
-    assert(result);
+    RequireLuaSuccess(result);
     assert(owner.Calls.load(std::memory_order_acquire) == 1);
 
     authorizer.Allowed = true;
@@ -172,7 +178,7 @@ int main() {
         end)
         assert(oversizedOk == false)
     )LUA", "lua-command-boundaries");
-    assert(result);
+    RequireLuaSuccess(result);
     assert(owner.Calls.load(std::memory_order_acquire) == 1);
     assert(authorizer.Decisions >= 4);
 
