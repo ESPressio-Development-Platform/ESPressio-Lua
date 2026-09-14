@@ -97,8 +97,9 @@ int main() {
         assert(Primitive.findByKey(3, 0xFEDCBA98, 0x76543210) == 2)
         assert(Primitive.findByKey(3, 0xFEDCBA98, 0x76543211) == nil)
 
-        -- Discovery does not publish an opaque family-extension capability.
-        assert(Primitive.familyExtension == nil)
+        -- Opaque family-extension behavior is not a Lua discovery capability.
+        local extensionVisible = pcall(function() return Primitive.familyExtension end)
+        assert(extensionVisible == false)
     )LUA", "primitive-discovery-contract");
     assert(script);
 
