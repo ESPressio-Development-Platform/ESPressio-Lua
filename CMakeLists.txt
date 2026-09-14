@@ -4,6 +4,8 @@ set(ESPRESSIO_SYSTEM_DIR "" CACHE PATH "ESPressio-System checkout at primitives_
 set(ESPRESSIO_PRIMITIVE_DIR "" CACHE PATH "Optional ESPressio-Primitive checkout at primitives_redesign for Primitive discovery tests")
 set(ESPRESSIO_COMMAND_DIR "" CACHE PATH "Optional ESPressio-Command checkout at primitives_redesign for Command admission tests")
 set(ESPRESSIO_COMMAND_DEPENDENCIES "" CACHE PATH "Directory containing ESPressio Command dependency checkouts")
+set(ESPRESSIO_EVENT_DIR "" CACHE PATH "Optional ESPressio-Event checkout at primitives_redesign for Event dispatch tests")
+set(ESPRESSIO_EVENT_DEPENDENCIES "" CACHE PATH "Directory containing ESPressio Event dependency checkouts")
 if(NOT EXISTS "${ESPRESSIO_SYSTEM_DIR}/src/ESPressio_Memory.hpp")
     message(FATAL_ERROR "Set ESPRESSIO_SYSTEM_DIR to an ESPressio-System primitives_redesign checkout")
 endif()
@@ -66,6 +68,31 @@ if(ESPRESSIO_LUA_BUILD_TESTS)
         endif()
         add_test(NAME command_admission_tests COMMAND command_admission_tests)
         set_tests_properties(command_admission_tests PROPERTIES TIMEOUT 30)
+    endif()
+
+    if(EXISTS "${ESPRESSIO_EVENT_DIR}/src/ESPressio_EventTypeDescriptor.hpp")
+        set(EVENT_DISPATCH_INCLUDES
+            "${ESPRESSIO_EVENT_DIR}/src"
+            "${ESPRESSIO_PRIMITIVE_DIR}/src")
+        foreach(dependency System Task Threads Timing Serializable Units Observable)
+            if(NOT EXISTS "${ESPRESSIO_EVENT_DEPENDENCIES}/ESPressio-${dependency}/src")
+                message(FATAL_ERROR "Missing ESPressio-${dependency} checkout for Lua Event dispatch tests")
+            endif()
+            list(APPEND EVENT_DISPATCH_INCLUDES
+                "${ESPRESSIO_EVENT_DEPENDENCIES}/ESPressio-${dependency}/src")
+        endforeach()
+        list(APPEND EVENT_DISPATCH_INCLUDES
+            "${ESPRESSIO_EVENT_DEPENDENCIES}/ESPressio-Timing/tests/stubs"
+            "${ESPRESSIO_EVENT_DEPENDENCIES}/ESPressio-Task/tests")
+
+        add_executable(event_dispatch_tests tests/event_dispatch_tests.cpp)
+        target_link_libraries(event_dispatch_tests PRIVATE espressio_lua Threads::Threads)
+        target_include_directories(event_dispatch_tests PRIVATE ${EVENT_DISPATCH_INCLUDES})
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            target_compile_options(event_dispatch_tests PRIVATE -Wall -Wextra -Werror -fno-rtti -UNDEBUG)
+        endif()
+        add_test(NAME event_dispatch_tests COMMAND event_dispatch_tests)
+        set_tests_properties(event_dispatch_tests PROPERTIES TIMEOUT 30)
     endif()
 
     set_tests_properties(binding_tests demo_test primitive_discovery_tests PROPERTIES TIMEOUT 30)
