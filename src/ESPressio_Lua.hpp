@@ -13,3 +13,7 @@
 #if __has_include(<ESPressio_EventTypeDescriptor.hpp>) && __has_include(<ESPressio_TypeDirectory.hpp>)
 #include "ESPressio_LuaEvent.hpp"
 #endif
+
+#if __has_include(<ESPressio_StateDescriptor.hpp>) && __has_include(<ESPressio_TypeDirectory.hpp>)
+#include "ESPressio_LuaState.hpp"
+#endif
