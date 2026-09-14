@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 using namespace ESPressio;
 namespace S = ESPressio::State;
@@ -68,7 +69,16 @@ void RequireLuaSuccess(const Lua::Result& result) {
 template<class Format>
 std::string EncodeExpected(const ScriptValue& value) {
     std::array<std::uint8_t, Serializable::MaximumSerializedSize<ScriptValue, Format>> bytes{};
-    const auto encoded = Serializable::SerializeBounded<Format>(value, bytes.data(), bytes.size());
+    const auto encoded = [&] {
+        if constexpr (std::is_same_v<Format, Serializable::DirectBinary>) {
+            return Serializable::SerializeBoundedDirectBinary(value, bytes.data(), bytes.size());
+        } else if constexpr (std::is_same_v<Format, Serializable::CBOR>) {
+            return Serializable::SerializeBoundedCbor(value, bytes.data(), bytes.size());
+        } else {
+            static_assert(std::is_same_v<Format, Serializable::JSON>);
+            return Serializable::SerializeBoundedJson(value, bytes.data(), bytes.size());
+        }
+    }();
     assert(encoded);
     return {reinterpret_cast<const char*>(bytes.data()), encoded.Bytes};
 }
