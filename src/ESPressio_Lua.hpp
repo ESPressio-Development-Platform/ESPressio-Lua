@@ -5,3 +5,7 @@
 #if __has_include(<ESPressio_TypeDirectory.hpp>)
 #include "ESPressio_LuaPrimitiveDiscovery.hpp"
 #endif
+
+#if __has_include(<ESPressio_CommandDescriptor.hpp>) && __has_include(<ESPressio_TypeDirectory.hpp>)
+#include "ESPressio_LuaCommand.hpp"
+#endif
