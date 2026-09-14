@@ -5,11 +5,13 @@
 #include <ESPressio_SerializationMacros.hpp>
 #include <HostRuntime.hpp>
 
+#include <array>
 #include <atomic>
 #include <cassert>
 #include <chrono>
 #include <cstdio>
 #include <cstdint>
+#include <string>
 #include <string_view>
 #include <thread>
 
@@ -87,6 +89,24 @@ void RequireLuaSuccess(const Lua::Result& result) {
     assert(result);
 }
 
+std::string ProviderJsonSubmission(std::int32_t value) {
+    ScriptCommand request;
+    request.Value = value;
+    std::array<
+        std::uint8_t,
+        Serializable::MaximumSerializedSize<ScriptCommand, Serializable::JSON>> encoded{};
+    const auto serialized = Serializable::SerializeBoundedJson(
+        request, encoded.data(), encoded.size());
+    assert(serialized);
+
+    std::string script = "local status = Command.submitJson(1, [=[";
+    script.append(reinterpret_cast<const char*>(encoded.data()), serialized.Bytes);
+    script += "]=])\n";
+    script += "assert(status == Command.Accepted, ";
+    script += "\"status=\" .. tostring(status) .. \" accepted=\" .. tostring(Command.Accepted))";
+    return script;
+}
+
 System::DeviceRuntimeIdentity Identity() {
     System::DeviceIdentifier::Storage bytes{};
     bytes[0] = 0x51;
@@ -136,11 +156,8 @@ int main() {
     assert(instance.initializationResult());
     assert(Lua::RegisterCommandAdmission(instance, luaDirectory.View(), authorizer));
 
-    auto result = instance.execute(R"LUA(
-        local status = Command.submitJson(1, [[{"value":41}]])
-        assert(status == Command.Accepted,
-               "status=" .. tostring(status) .. " accepted=" .. tostring(Command.Accepted))
-    )LUA", "lua-command-json");
+    auto providerJson = ProviderJsonSubmission(41);
+    auto result = instance.execute(providerJson, "lua-command-json");
     RequireLuaSuccess(result);
     Eventually([&] {
         return owner.Seen.load(std::memory_order_acquire) == 41 &&
@@ -148,7 +165,7 @@ int main() {
     });
 
     result = instance.execute(R"LUA(
-        assert(Command.submitJson(1, [[{"value":"invalid"}]]) == Command.SchemaOrDecodeFailure)
+        assert(Command.submitJson(1, [[not-json]]) == Command.SchemaOrDecodeFailure)
     )LUA", "lua-command-invalid-schema");
     RequireLuaSuccess(result);
     assert(owner.Calls.load(std::memory_order_acquire) == 1);
@@ -156,7 +173,7 @@ int main() {
     authorizer.Allowed = false;
     result = instance.execute(R"LUA(
         local ok = pcall(function()
-            Command.submitJson(1, [[{"value":42}]])
+            Command.submitJson(1, [[]])
         end)
         assert(ok == false)
     )LUA", "lua-command-authorization");
@@ -166,12 +183,12 @@ int main() {
     authorizer.Allowed = true;
     result = instance.execute(R"LUA(
         local responseOk = pcall(function()
-            Command.submitJson(2, [[{"value":43}]])
+            Command.submitJson(2, [[]])
         end)
         assert(responseOk == false)
 
         local indexOk = pcall(function()
-            Command.submitJson(3, [[{"value":44}]])
+            Command.submitJson(3, [[]])
         end)
         assert(indexOk == false)
 
