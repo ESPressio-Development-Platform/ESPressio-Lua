@@ -1,0 +1,54 @@
+name: Primitive Discovery Contract
+
+on:
+  push:
+    branches: [primitives_redesign]
+    paths:
+      - 'src/ESPressio_LuaPrimitiveDiscovery.hpp'
+      - 'src/ESPressio_Lua.hpp'
+      - 'tests/primitive_discovery_tests.cpp'
+      - 'CMakeLists.txt'
+      - 'library.json'
+      - '.github/workflows/primitives-redesign-discovery.yml'
+  pull_request:
+    paths:
+      - 'src/ESPressio_LuaPrimitiveDiscovery.hpp'
+      - 'src/ESPressio_Lua.hpp'
+      - 'tests/primitive_discovery_tests.cpp'
+      - 'CMakeLists.txt'
+      - 'library.json'
+      - '.github/workflows/primitives-redesign-discovery.yml'
+
+jobs:
+  primitive-discovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Lua
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: primitives_redesign
+          path: ESPressio-System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Primitive
+          ref: primitives_redesign
+          path: ESPressio-Primitive
+      - name: Reject family behavior leakage into D10-08
+        run: |
+          if grep -nE 'ESPressio_(Command|Event|State)|FamilyExtension[[:space:]]*\.' ESPressio-Lua/src/ESPressio_LuaPrimitiveDiscovery.hpp; then
+            exit 1
+          fi
+      - name: Configure focused discovery build
+        run: >-
+          cmake -S ESPressio-Lua -B build
+          -DESPRESSIO_SYSTEM_DIR="$GITHUB_WORKSPACE/ESPressio-System"
+          -DESPRESSIO_PRIMITIVE_DIR="$GITHUB_WORKSPACE/ESPressio-Primitive"
+          -DESPRESSIO_LUA_SANITIZE=ON
+          -DCMAKE_BUILD_TYPE=Debug
+      - name: Build D10-08 discovery contract
+        run: cmake --build build --target primitive_discovery_tests --parallel 2
+      - name: Run D10-08 discovery contract
+        run: ctest --test-dir build -R '^primitive_discovery_tests$' --output-on-failure
