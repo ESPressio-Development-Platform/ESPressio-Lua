@@ -84,6 +84,8 @@ inline Event::EventDynamicDispatchStatus DispatchLuaEvent(
     require(maximum != 0, "Event representation is unavailable");
     require(payload.size() <= maximum, "Lua Event payload exceeds bounded P3 capacity");
 
+    // Lua receives the family-owned terminal submission status only. The issued
+    // ConceptualMessageId remains an Event occurrence fact rather than Lua lifecycle state.
     return Event::DispatchDynamicEvent(
         *descriptor,
         format,
