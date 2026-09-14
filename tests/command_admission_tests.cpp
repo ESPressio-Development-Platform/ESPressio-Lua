@@ -137,7 +137,9 @@ int main() {
     assert(Lua::RegisterCommandAdmission(instance, luaDirectory.View(), authorizer));
 
     auto result = instance.execute(R"LUA(
-        assert(Command.submitJson(1, [[{"value":41}]]) == Command.Accepted)
+        local status = Command.submitJson(1, [[{"value":41}]])
+        assert(status == Command.Accepted,
+               "status=" .. tostring(status) .. " accepted=" .. tostring(Command.Accepted))
     )LUA", "lua-command-json");
     RequireLuaSuccess(result);
     Eventually([&] {
