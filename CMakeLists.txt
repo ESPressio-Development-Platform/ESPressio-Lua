@@ -6,6 +6,8 @@ set(ESPRESSIO_COMMAND_DIR "" CACHE PATH "Optional ESPressio-Command checkout at 
 set(ESPRESSIO_COMMAND_DEPENDENCIES "" CACHE PATH "Directory containing ESPressio Command dependency checkouts")
 set(ESPRESSIO_EVENT_DIR "" CACHE PATH "Optional ESPressio-Event checkout at primitives_redesign for Event dispatch tests")
 set(ESPRESSIO_EVENT_DEPENDENCIES "" CACHE PATH "Directory containing ESPressio Event dependency checkouts")
+set(ESPRESSIO_STATE_DIR "" CACHE PATH "Optional ESPressio-State checkout at primitives_redesign for State inspection tests")
+set(ESPRESSIO_STATE_DEPENDENCIES "" CACHE PATH "Directory containing ESPressio State dependency checkouts")
 if(NOT EXISTS "${ESPRESSIO_SYSTEM_DIR}/src/ESPressio_Memory.hpp")
     message(FATAL_ERROR "Set ESPRESSIO_SYSTEM_DIR to an ESPressio-System primitives_redesign checkout")
 endif()
@@ -93,6 +95,31 @@ if(ESPRESSIO_LUA_BUILD_TESTS)
         endif()
         add_test(NAME event_dispatch_tests COMMAND event_dispatch_tests)
         set_tests_properties(event_dispatch_tests PROPERTIES TIMEOUT 30)
+    endif()
+
+    if(EXISTS "${ESPRESSIO_STATE_DIR}/src/ESPressio_StateDescriptor.hpp")
+        set(STATE_INSPECTION_INCLUDES
+            "${ESPRESSIO_STATE_DIR}/src"
+            "${ESPRESSIO_PRIMITIVE_DIR}/src")
+        foreach(dependency System Task Threads Timing Serializable Units Observable Persistence Security)
+            if(NOT EXISTS "${ESPRESSIO_STATE_DEPENDENCIES}/ESPressio-${dependency}/src")
+                message(FATAL_ERROR "Missing ESPressio-${dependency} checkout for Lua State inspection tests")
+            endif()
+            list(APPEND STATE_INSPECTION_INCLUDES
+                "${ESPRESSIO_STATE_DEPENDENCIES}/ESPressio-${dependency}/src")
+        endforeach()
+        list(APPEND STATE_INSPECTION_INCLUDES
+            "${ESPRESSIO_STATE_DEPENDENCIES}/ESPressio-Timing/tests/stubs"
+            "${ESPRESSIO_STATE_DEPENDENCIES}/ESPressio-Task/tests")
+
+        add_executable(state_inspection_tests tests/state_inspection_tests.cpp)
+        target_link_libraries(state_inspection_tests PRIVATE espressio_lua Threads::Threads)
+        target_include_directories(state_inspection_tests PRIVATE ${STATE_INSPECTION_INCLUDES})
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            target_compile_options(state_inspection_tests PRIVATE -Wall -Wextra -Werror -fno-rtti -UNDEBUG)
+        endif()
+        add_test(NAME state_inspection_tests COMMAND state_inspection_tests)
+        set_tests_properties(state_inspection_tests PROPERTIES TIMEOUT 30)
     endif()
 
     set_tests_properties(binding_tests demo_test primitive_discovery_tests PROPERTIES TIMEOUT 30)
