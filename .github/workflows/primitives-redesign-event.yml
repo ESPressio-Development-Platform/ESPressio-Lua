@@ -1,0 +1,70 @@
+name: Lua Event Dispatch Contract
+
+on:
+  push:
+    branches: [primitives_redesign]
+    paths:
+      - 'src/ESPressio_LuaEvent.hpp'
+      - 'src/ESPressio_Lua.hpp'
+      - 'tests/event_dispatch_tests.cpp'
+      - 'CMakeLists.txt'
+      - '.github/workflows/primitives-redesign-event.yml'
+  pull_request:
+    paths:
+      - 'src/ESPressio_LuaEvent.hpp'
+      - 'src/ESPressio_Lua.hpp'
+      - 'tests/event_dispatch_tests.cpp'
+      - 'CMakeLists.txt'
+      - '.github/workflows/primitives-redesign-event.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  event-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ESPressio-Lua
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Event, ref: primitives_redesign, path: deps/ESPressio-Event}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-System, ref: primitives_redesign, path: deps/ESPressio-System}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Primitive, ref: primitives_redesign, path: deps/ESPressio-Primitive}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Task, ref: primitives_redesign, path: deps/ESPressio-Task}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Threads, ref: primitives_redesign, path: deps/ESPressio-Threads}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Timing, ref: primitives_redesign, path: deps/ESPressio-Timing}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Serializable, ref: primitives_redesign, path: deps/ESPressio-Serializable}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Units, ref: primitives_redesign, path: deps/ESPressio-Units}
+      - uses: actions/checkout@v4
+        with: {repository: ESPressio-Development-Platform/ESPressio-Observable, ref: primitives_redesign, path: deps/ESPressio-Observable}
+
+      - name: Reject predecessor or cross-family Event coupling
+        shell: bash
+        run: |
+          if grep -nE 'EventManager|EventTransportManager|ESPressio_(Command|State|Adapters|Radio)' ESPressio-Lua/src/ESPressio_LuaEvent.hpp; then
+            exit 1
+          fi
+
+      - name: Configure D10-10 contract
+        run: >-
+          cmake -S ESPressio-Lua -B build
+          -DESPRESSIO_SYSTEM_DIR="$GITHUB_WORKSPACE/deps/ESPressio-System"
+          -DESPRESSIO_PRIMITIVE_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Primitive"
+          -DESPRESSIO_EVENT_DIR="$GITHUB_WORKSPACE/deps/ESPressio-Event"
+          -DESPRESSIO_EVENT_DEPENDENCIES="$GITHUB_WORKSPACE/deps"
+          -DESPRESSIO_LUA_SANITIZE=ON
+          -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build D10-10 Event dispatch contract
+        run: cmake --build build --target event_dispatch_tests --parallel 2
+
+      - name: Run D10-10 Event dispatch contract
+        run: ctest --test-dir build -R '^event_dispatch_tests$' --output-on-failure
