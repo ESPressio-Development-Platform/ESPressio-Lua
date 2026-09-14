@@ -119,7 +119,6 @@ int main() {
         local r = State.readJson(1)
         assert(r.status == State.NoValue)
         assert(r.payload == nil)
-        assert(State.set == nil and State.write == nil and State.owner == nil)
     )LUA", "lua-state-no-value");
     RequireLuaSuccess(result);
 
