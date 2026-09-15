@@ -1,21 +1,35 @@
 # Integration and extension contracts
 
 ## Dependency ownership
-Only ESPressio-Lua owns Lua bindings and vendored interpreter code. Mandatory upstream dependency: ESPressio-System at `structural_realignment`. Its existing `IMemoryProvider`, `MemoryPolicy`, container aliases and `MakeShared` are used without changes. No generic language abstraction or Lua adapter is added to another repository.
+Only ESPressio-Lua owns Lua bindings and vendored interpreter code. Mandatory upstream dependency: ESPressio-System at `primitives_redesign`. Its existing allocation, memory-policy and platform contracts are consumed without moving Lua semantics upstream. No generic language abstraction or Lua adapter is added to another repository.
 
 The optional logging switch `ESPRESSIO_LUA_ENABLE_LOGGING=1` includes ESPressio-Logging and emits protected-operation failures in category `ESPressio.Lua`. Disabled is the default and introduces no Logging include or link requirement. Set this macro consistently across translation units. Logging's own level switches still apply.
 
-For optional logging, install/pin all of these existing working branches:
+For optional logging during the Primitive Platform Redesign, use the corresponding `primitives_redesign` branches:
 
 | Repository | Branch |
 | --- | --- |
-| ESPressio-System | structural_realignment |
-| ESPressio-Logging | structural_realignment |
-| ESPressio-Observable | structural_realignment |
-| ESPressio-Timing | structural_realignment |
-| ESPressio-Units | structural_realignment |
+| ESPressio-System | primitives_redesign |
+| ESPressio-Logging | primitives_redesign |
+| ESPressio-Observable | primitives_redesign |
+| ESPressio-Timing | primitives_redesign |
+| ESPressio-Units | primitives_redesign |
 
-The selected existing Logging/Timing/Units dependency chain includes Arduino-facing types. Applications enabling that optional integration must satisfy those libraries' platform requirements. The default Lua binding has no such dependency. Timing's include directory must precede System's if manually assembling include paths, because those working branches contain overlapping legacy header names. PlatformIO should resolve the real packages normally.
+The selected Logging/Timing/Units dependency chain may include target-facing types depending on the concrete platform. Applications enabling optional integration must satisfy those libraries' platform requirements. The default Lua binding has no such dependency. PlatformIO should resolve the real packages normally rather than relying on manually ordered legacy include paths.
+
+## Primitive-family adapters
+
+The Primitive Platform Redesign keeps Lua as a dynamic tooling surface rather than a semantic owner. Optional adapter integrations follow the same boundaries as Web and Serial tooling:
+
+- discover Types through a frozen `Primitive::TypeDirectoryView`; Lua does not create or mutate a competing Type registry;
+- consume final family descriptor/schema metadata when exposing dynamic Types;
+- construct and admit Commands through the final typed Command descriptor/runtime path; a discoverable Command is not automatically authorized;
+- expose Event operations only through final Event APIs and their delivery/admission policy;
+- expose generic State as read/inspect only. Arbitrary Lua code cannot acquire State-owner authority by discovering a State descriptor;
+- bound names, source text, serialized input and construction storage before parse/construction; malformed or unsupported input returns an explicit Lua/tool error rather than falling back to unbounded allocation, raw reinterpretation or exception-driven retry;
+- keep each optional adapter dependency directed into Lua/tooling. Primitive, Command, Event and State do not depend on ESPressio-Lua.
+
+The focused `primitives-redesign-discovery`, `-command`, `-event` and `-state` workflows are the executable integration contracts for those optional surfaces.
 
 ## Value converter extension
 Specialize `ESPressio::Lua::Converter<T>` with:
