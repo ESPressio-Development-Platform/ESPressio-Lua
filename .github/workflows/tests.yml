@@ -56,12 +56,16 @@ jobs:
           python-version: '3.12'
       - name: Install PlatformIO
         run: pip install platformio==6.1.19
-      - name: Prepare local dependency demo build
+      - name: Prepare local dependency demo builds
         shell: bash
         run: |
-          mkdir -p compile
-          cp -R ESPressio-Lua/demos/NativeBindings/platformio/src compile/src
-          cat > compile/platformio.ini <<EOF_INI
+          set -euo pipefail
+          for entry in "NativeBindings:native-bindings" "SerialLuaConsole:serial-lua-console"; do
+            demo="${entry%%:*}"
+            output="${entry##*:}"
+            mkdir -p "compile-${output}"
+            cp -R "ESPressio-Lua/demos/${demo}/platformio/src" "compile-${output}/src"
+            cat > "compile-${output}/platformio.ini" <<EOF_INI
           [env:esp32dev]
           platform = espressif32@6.9.0
           board = esp32dev
@@ -72,5 +76,8 @@ jobs:
               symlink://$GITHUB_WORKSPACE/ESPressio-System
               symlink://$GITHUB_WORKSPACE/ESPressio-Lua
           EOF_INI
-      - name: Compile and link demo firmware
-        run: pio run -d compile
+          done
+      - name: Compile and link NativeBindings firmware
+        run: pio run -d compile-native-bindings
+      - name: Compile and link SerialLuaConsole firmware
+        run: pio run -d compile-serial-lua-console
