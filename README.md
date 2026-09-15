@@ -3,8 +3,8 @@ Lua 5.5.1 scripting integration components of the ESPressio Development Platform
 
 Expose existing C/C++ structs and classes to Lua without changing their native definitions. Describe their Lua-facing interface once, register it with independent scripting instances, and explicitly expose constructors or application-owned objects.
 
-## Latest Stable Version
-This is the initial, unreleased implementation on `main`. The library manifests use the planned 1.0.0 baseline; no release or tag is created by this implementation. The bundled language runtime is **Lua 5.5.1**.
+## Development status
+This is the initial unreleased implementation. The library manifests retain the planned 1.0.0 baseline; no release or tag is created by the Primitive Platform Redesign work. The canonical branch for the current redesign tranche is `primitives_redesign`. The bundled language runtime is **Lua 5.5.1**.
 
 ## ESPressio Development Platform
 **ESPressio** is a collection of discrete component libraries built around lightweight implementation, ease of use, object-oriented interfaces and SOLID design. Application-facing abstractions remain separate from hardware implementations. This library uses ESPressio System for allocation and contains no Arduino or ESP-IDF calls in its binding layer.
@@ -26,9 +26,9 @@ All public binding types live in `ESPressio::Lua`:
 | `Borrowed` | Explicit application-owned object registration |
 
 ## Dependencies
-Mandatory: [ESPressio-System](https://github.com/ESPressio-Development-Platform/ESPressio-System/tree/structural_realignment), pinned to `structural_realignment` in manifests, demos and CI. No other ESPressio repository requires changes.
+Mandatory: ESPressio-System on `primitives_redesign`. The core Lua binding keeps that single mandatory ESPressio dependency.
 
-Optional: [ESPressio-Logging](https://github.com/ESPressio-Development-Platform/ESPressio-Logging/tree/structural_realignment), enabled by `ESPRESSIO_LUA_ENABLE_LOGGING=1`. See [integration contracts](docs/Integration.md) for its dependency branches and build requirements. No reverse dependency is introduced.
+Optional integrations, including ESPressio-Logging and the Primitive/Command/Event/State tooling adapters, remain opt-in and do not introduce reverse dependencies into their source libraries. During this redesign tranche their corresponding integration workflows use `primitives_redesign`. See [integration contracts](docs/Integration.md).
 
 Lua is vendored at the official `v5.5.1` tag. No runtime download or separate Lua installation is required. C++17 **and C++ exceptions** are required. The bundled runtime uses C++ linkage and exception unwinding; do not link another Lua build or define `LUA_USE_LONGJMP`.
 
@@ -41,11 +41,23 @@ framework = arduino
 build_unflags = -std=gnu++11 -fno-exceptions
 build_flags = -std=gnu++17 -fexceptions
 lib_deps =
-    https://github.com/ESPressio-Development-Platform/ESPressio-Lua.git#main
-    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#structural_realignment
+    https://github.com/ESPressio-Development-Platform/ESPressio-Lua.git#primitives_redesign
+    https://github.com/ESPressio-Development-Platform/ESPressio-System.git#primitives_redesign
 ```
 
 Private repositories require your normal GitHub checkout credentials. Arduino IDE users should install both repositories as libraries and use the included [Arduino demo](demos/NativeBindings/arduino_ide/NativeBindings), including its ESP32 `build_opt.h`.
+
+## Primitive redesign tooling
+
+Lua is a consumer of the final Primitive-family contracts, not a semantic owner or alternate registry.
+
+- `ESPressio_LuaPrimitiveDiscovery.hpp` projects a frozen `Primitive::TypeDirectoryView` into Lua-facing discovery without importing family behavior into the generic discovery adapter.
+- Family-specific adapters consume the final descriptor/schema surfaces. A Type being discoverable does **not** authorize an operation.
+- Dynamic Commands are schema/factory constructed and submitted through the final Command admission/runtime path. Lua does not bypass admission or manufacture an Event to execute a Command.
+- Event operations use the final Event APIs and retain Event delivery/admission policy.
+- Generic State exposure is read/inspect only; discovering State metadata cannot grant owner-write authority.
+- Dynamic names, scripts, serialized inputs and construction storage are bounded before parse/construction. Invalid input returns an explicit tooling/Lua failure rather than an unbounded heap fallback, raw reinterpretation or exception-driven retry loop.
+- The focused `primitives-redesign-discovery`, `-command`, `-event` and `-state` workflows compile and execute these optional adapter contracts against the final redesign branches.
 
 ## Usage Examples
 Define an ordinary native type:
@@ -95,13 +107,7 @@ The [native-bindings demo](demos/NativeBindings/README.md) adds computed propert
 ### Calling Lua objects and functions from C++
 
 The current `Instance` API provides `execute`, `call` and `readGlobal`.
-`call` passes typed arguments to a **global function**, but discards its Lua
-return values; its `Result` reports execution success or failure. There is no
-public Lua-object handle or direct method-call/return-value API yet. The example
-below uses a small Lua adapter to resolve a global object by name, call its
-method, and place the returned value in a global that C++ can read.
-
-This complete C++17 example uses the bundled runtime:
+`call` passes typed arguments to a **global function**, but discards its Lua return values; its `Result` reports execution success or failure. There is no public Lua-object handle or direct method-call/return-value API yet. The example below uses a small Lua adapter to resolve a global object by name, call its method, and place the returned value in a global that C++ can read.
 
 ```cpp
 #include <ESPressio_Lua.hpp>
@@ -119,27 +125,21 @@ int main() {
     if (!check(script.initializationResult())) return 1;
 
     if (!check(script.execute(R"lua(
-        -- A global Lua object (a table with a method).
         calculator = { offset = 10 }
         function calculator:add(a, b)
             return self.offset + a + b
         end
-
-        -- A global Lua function, independent of the object.
         function multiply(a, b)
             return a * b
         end
-
-        -- Application-defined adapters, not built-in ESPressio APIs.
         function hostCallMethod(objectName, methodName, a, b)
             hostReturnValue = nil
-            local object = _G[objectName] -- Resolve the global by name.
+            local object = _G[objectName]
             assert(object ~= nil, "Global Lua object was not found")
             local method = object[methodName]
             assert(type(method) == "function", "Object member is not a function")
             hostReturnValue = method(object, a, b)
         end
-
         function hostCallGlobal(functionName, a, b)
             hostReturnValue = nil
             local fn = _G[functionName]
@@ -148,8 +148,6 @@ int main() {
         end
     )lua"))) return 1;
 
-    // Resolve calculator by name and call calculator:add(4, 7).
-    // Names and values cross the binding as arguments, not generated Lua text.
     if (!check(script.call("hostCallMethod",
                            std::string_view{"calculator"},
                            std::string_view{"add"}, 4, 7))) return 1;
@@ -157,10 +155,6 @@ int main() {
     if (!check(script.readGlobal("hostReturnValue", methodReturn))) return 1;
     std::printf("Method returned: %d\n", methodReturn); // 21
 
-    // Execute a global function directly when its return value is not needed.
-    if (!check(script.call("multiply", 6, 7))) return 1;
-
-    // Execute the same global function and retrieve its return value.
     if (!check(script.call("hostCallGlobal",
                            std::string_view{"multiply"}, 6, 7))) return 1;
     int globalReturn = 0;
@@ -170,70 +164,13 @@ int main() {
 }
 ```
 
-`method(object, a, b)` is the dynamic-name equivalent of
-`calculator:add(a, b)`: the object is the explicit first argument (`self`).
-For a table function declared with dot syntax that does not accept `self`, use
-`method(a, b)` instead. `_G[objectName]` looks up one exact global name, not a
-dotted path; Lua `local` variables are not global objects.
+`method(object, a, b)` is the dynamic-name equivalent of `calculator:add(a, b)`: the object is the explicit first argument (`self`). `_G[objectName]` looks up one exact global name, not a dotted path; Lua `local` variables are not global objects.
 
-`readGlobal` performs checked conversion into the requested C++ type. Only read
-the output after both the call and conversion succeed. These adapters capture
-one return value; additional Lua return values are discarded. The example uses
-application-owned global names `hostCallMethod`, `hostCallGlobal` and
-`hostReturnValue`; reserve them for this purpose. Keep the call/read pair on one
-application execution context (or hold an application lock across both), because
-they are two separate operations and another call could overwrite the value.
-Object resolution stays inside Lua and occurs on every adapter call; this does
-not retain a native handle to the object.
+`readGlobal` performs checked conversion into the requested C++ type. Only read the output after both the call and conversion succeed. Keep a call/read pair on one application execution context, or hold an application lock across both, because they are separate operations and another call could overwrite the shared Lua result value.
 
 ### Calling from a C translation unit
 
-ESPressio-Lua's public interface requires C++17 and its bundled Lua runtime uses
-C++ linkage. A pure C source file cannot include `ESPressio_Lua.hpp` or directly
-link to this runtime through an ordinary Lua C build. Use a C-compatible entry
-point implemented in a `.cpp` file. For example, this minimal wrapper creates a
-VM, defines a global function, passes two C integers to it and returns its result:
-
-```cpp
-// lua_bridge.cpp -- compile as C++17 with exceptions and link ESPressio-Lua.
-#include <ESPressio_Lua.hpp>
-
-extern "C" int espressio_lua_multiply(int a, int b, int* output) noexcept {
-    if (!output) return 0;
-    try {
-        ESPressio::Lua::Instance script;
-        if (!script.initializationResult()) return 0;
-        if (!script.execute(R"lua(
-            function multiply(a, b) return a * b end
-            function hostMultiply(a, b) hostReturnValue = multiply(a, b) end
-        )lua")) return 0;
-        if (!script.call("hostMultiply", a, b)) return 0;
-        int value = 0;
-        if (!script.readGlobal("hostReturnValue", value)) return 0;
-        *output = value;
-        return 1;
-    } catch (...) {
-        return 0; // Never propagate a C++ exception into the C caller.
-    }
-}
-```
-
-```c
-/* caller.c -- compile as C; link the application using the C++ linker. */
-extern int espressio_lua_multiply(int a, int b, int* output);
-
-int main(void) {
-    int value = 0;
-    if (!espressio_lua_multiply(6, 7, &value)) return 1;
-    return value == 42 ? 0 : 1;
-}
-```
-
-The C wrapper returns `1` on success and `0` on failure, leaving `*output`
-unchanged on failure. For repeated calls or object state that must persist,
-keep an application-owned `Instance` alive in the C++ bridge and expose C entry
-points for its lifecycle and operations. Its object-method entry point can use
-the same `hostCallMethod` adapter above.
+ESPressio-Lua's public interface requires C++17 and its bundled Lua runtime uses C++ linkage. A pure C source file cannot include `ESPressio_Lua.hpp`. Put a C-compatible entry point in a `.cpp` bridge and link the final application with the C++ linker. Do not allow a C++ exception to cross that C ABI boundary. For repeated calls or persistent object state, keep an application-owned `Instance` alive in the C++ bridge and expose explicit C lifecycle/operation functions.
 
 ## Execution and Resource Contracts
 Each `Instance` owns an independent Lua state. Entry is serialized by rejection: concurrent or reentrant operations return `Status::Busy`, so the application can queue work using its chosen ESPressio execution abstractions. Calls execute synchronously on the calling task; there is no hidden thread or scheduler.
@@ -249,7 +186,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-Add `-DESPRESSIO_LUA_SANITIZE=ON` for AddressSanitizer/UndefinedBehaviorSanitizer. Tests execute the bundled Lua 5.5.1 runtime and cover ownership/finalization, reusable definitions, view isolation, conversion failures, native errors, concurrency rejection, budgets and allocation-failure recovery. See [validation notes](docs/Validation.md).
+Add `-DESPRESSIO_LUA_SANITIZE=ON` for AddressSanitizer/UndefinedBehaviorSanitizer. Tests execute the bundled Lua 5.5.1 runtime and cover ownership/finalization, reusable definitions, view isolation, conversion failures, native errors, concurrency rejection, budgets and allocation-failure recovery. The focused Primitive redesign workflows add discovery and family-adapter coverage. See [validation notes](docs/Validation.md).
 
 ## Extensions
 Add `Converter<T>` specializations in your application or in adapters owned by this repository. Keep Lua-specific references out of upstream ESPressio libraries. See [extension contracts](docs/Integration.md).
