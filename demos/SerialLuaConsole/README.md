@@ -2,12 +2,18 @@
 
 This demo lets an operator execute Lua on an ESP32 through its USB Serial
 console. It demonstrates application-owned output devices, reusable Lua type
-definitions, standard Lua `print(...)` redirected through C++, and an
-ESPressio Command handler registered at:
+definitions, standard Lua `print(...)` redirected through C++, and a small
+application-owned Serial command grammar:
 
 ```text
 lua run <script>
 ```
+
+The `lua run` prefix is deliberately **not** an ESPressio Command primitive.
+The final ESPressio Command architecture represents asynchronous, strongly typed
+intent and has no mutable textual command registry. This demo only needs a local,
+privileged operator UI, so it parses those two prefix words itself and executes
+the remaining bytes directly through the persistent Lua instance.
 
 The Lua VM persists between commands. Scripts can therefore define globals and
 functions in one command and use them later. Treat the console as a privileged
@@ -50,8 +56,8 @@ before compiling.
 
 ## PlatformIO
 
-Open `platformio` as the project directory, authenticate GitHub access for the
-private ESPressio repositories, then build and upload:
+Open `platformio` as the project directory, authenticate GitHub access where
+required, then build and upload:
 
 ```sh
 pio run
@@ -59,14 +65,16 @@ pio run --target upload
 pio device monitor --baud 115200
 ```
 
-The configuration pins ESPressio dependencies to their current structural
-realignment branches. It also fixes Arduino-ESP32 at the version supplied by
-`espressif32@6.9.0`; the demo checks for the corresponding 2.x LEDC API.
+The configuration pins the participating ESPressio dependencies to their
+coordinated `primitives_redesign` branches. It also fixes Arduino-ESP32 at the
+version supplied by `espressif32@6.9.0`; the demo checks for the corresponding
+2.x LEDC API.
 
 ## Arduino IDE
 
-Install ESP32 Arduino core 2.0.17 and install ESPressio-Lua plus the ESPressio
-Command dependency chain listed in the PlatformIO configuration. Open:
+Install ESP32 Arduino core 2.0.17 and install ESPressio-Lua together with its
+ESPressio-System dependency. During the coordinated redesign use the matching
+`primitives_redesign` branches. Open:
 
 ```text
 arduino_ide/SerialLuaConsole/SerialLuaConsole.ino
@@ -108,9 +116,9 @@ lua run led:off(); rgb:off(); buzzer:off()
 with tabs and emits a newline through a registered C++ Serial writer. Each
 operator command receives a bounded 4096-byte print allowance.
 
-Only the first two space-delimited words are interpreted as the Command path.
-Everything after the separator following `lua run` is passed unchanged to
-`Instance::execute`, preserving Lua quotes and backslashes.
+Only the first two space-delimited words are interpreted as the local console
+prefix. Everything after the separator following `lua run` is passed unchanged
+to `Instance::execute`, preserving Lua quotes and backslashes.
 
 ## Structure
 
@@ -118,7 +126,8 @@ Everything after the separator following `lua run` is passed unchanged to
 - `LuaDeviceTypes.hpp` encapsulates each Lua-facing type definition in a
   factory, making each definition registerable with one call.
 - `LuaSerialPrint.hpp` installs the C++ writer and Lua `print(...)`.
-- `LuaCommandHandler.hpp` owns the ESPressio Command registry and `lua/run`.
+- `LuaCommandHandler.hpp` parses only the local `lua run` operator prefix and
+  executes the remaining source through the persistent Lua instance.
 - `SerialConsole.hpp` incrementally reads bounded lines without blocking.
 - `SerialLuaDemo.hpp` owns objects in shutdown-safe order and registers them.
 
